@@ -1,5 +1,7 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/constants/app_strings.dart';
 import '../../../core/services/transaction_service.dart';
 import '../../../data/models/transaction_model.dart';
 
@@ -16,13 +18,21 @@ class TransactionController extends GetxController {
     required double amount,
     required String type,
   }) async {
-    await transactionService.addTransaction(
-      title: title,
-      amount: amount,
-      type: type,
-    );
+    try {
+      await transactionService.addTransaction(
+        title: title,
+        amount: amount,
+        type: type,
+      );
 
-    update();
+      update();
+    } catch (e) {
+      Get.snackbar(
+        AppStrings.error,
+        AppStrings.transactionSaveError,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 
   // ================================================================
@@ -35,14 +45,22 @@ class TransactionController extends GetxController {
     required double amount,
     required String type,
   }) async {
-    await transactionService.editTransaction(
-      index: index,
-      title: title,
-      amount: amount,
-      type: type,
-    );
+    try {
+      await transactionService.editTransaction(
+        index: index,
+        title: title,
+        amount: amount,
+        type: type,
+      );
 
-    update();
+      update();
+    } catch (e) {
+      Get.snackbar(
+        AppStrings.error,
+        AppStrings.updateTransactionError,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 
   // ================================================================
@@ -50,9 +68,17 @@ class TransactionController extends GetxController {
   // ================================================================
 
   Future<void> deleteTransaction(int index) async {
-    await transactionService.deleteTransaction(index);
+    try {
+      await transactionService.deleteTransaction(index);
 
-    update();
+      update();
+    } catch (e) {
+      Get.snackbar(
+        AppStrings.error,
+        AppStrings.transactionDeleteError,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 
   // ================================================================
@@ -60,9 +86,17 @@ class TransactionController extends GetxController {
   // ================================================================
 
   Future<void> clearAllTransactions() async {
-    await transactionService.clearAllTransactions();
+    try {
+      await transactionService.clearAllTransactions();
 
-    update();
+      update();
+    } catch (e) {
+      Get.snackbar(
+        AppStrings.error,
+        AppStrings.transactionStorageError,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 
   // ================================================================
@@ -70,7 +104,11 @@ class TransactionController extends GetxController {
   // ================================================================
 
   double get totalIncome {
-    return transactionService.totalIncome;
+    try {
+      return transactionService.totalIncome;
+    } catch (e) {
+      return 0.0;
+    }
   }
 
   // ================================================================
@@ -78,7 +116,11 @@ class TransactionController extends GetxController {
   // ================================================================
 
   double get totalExpense {
-    return transactionService.totalExpense;
+    try {
+      return transactionService.totalExpense;
+    } catch (e) {
+      return 0.0;
+    }
   }
 
   // ================================================================
@@ -86,7 +128,11 @@ class TransactionController extends GetxController {
   // ================================================================
 
   double get balance {
-    return transactionService.balance;
+    try {
+      return transactionService.balance;
+    } catch (e) {
+      return 0.0;
+    }
   }
 
   // ================================================================
@@ -94,6 +140,10 @@ class TransactionController extends GetxController {
   // ================================================================
 
   List<TransactionModel> get transactions {
-    return transactionService.transactions;
+    try {
+      return transactionService.transactions;
+    } catch (e) {
+      return [];
+    }
   }
 }

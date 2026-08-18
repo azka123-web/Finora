@@ -47,46 +47,85 @@ class _EditTransactionViewState extends State<EditTransactionView> {
       text: widget.transaction.amount.toString(),
     );
 
-    selectedType = widget.transaction.type;
+    selectedType = widget.transaction.type.toLowerCase();
+
+    // Make sure an invalid transaction type cannot break the UI.
+    if (selectedType != 'income' && selectedType != 'expense') {
+      selectedType = 'expense';
+    }
   }
 
+  // ================================================================
+  // UPDATE TRANSACTION
+  // ================================================================
+
   Future<void> updateTransaction() async {
+    // Prevent duplicate update requests.
+    if (isLoading || isUpdated) {
+      return;
+    }
+
     final title = titleController.text.trim();
     final amountText = amountController.text.trim();
 
+    // --------------------------------------------------------------
+    // TRANSACTION VALIDATION
+    // --------------------------------------------------------------
+
     if (title.isEmpty) {
-      Get.snackbar(
+      _showError(
         AppStrings.titleRequired,
         AppStrings.enterTransactionTitle,
-        snackPosition: SnackPosition.BOTTOM,
-        margin: const EdgeInsets.all(15),
       );
       return;
     }
 
     if (amountText.isEmpty) {
-      Get.snackbar(
+      _showError(
         AppStrings.amountRequired,
         AppStrings.enterTransactionAmount,
-        snackPosition: SnackPosition.BOTTOM,
-        margin: const EdgeInsets.all(15),
       );
       return;
     }
 
     final amount = double.tryParse(amountText);
 
-    if (amount == null || amount <= 0) {
-      Get.snackbar(
+    if (amount == null || amount.isNaN || amount.isInfinite) {
+      _showError(
         AppStrings.invalidAmount,
         AppStrings.validAmount,
-        snackPosition: SnackPosition.BOTTOM,
-        margin: const EdgeInsets.all(15),
       );
       return;
     }
 
+    if (amount <= 0) {
+      _showError(
+        AppStrings.invalidAmount,
+        AppStrings.validAmount,
+      );
+      return;
+    }
+
+    // --------------------------------------------------------------
+    // TRANSACTION TYPE VALIDATION
+    // --------------------------------------------------------------
+
+    if (selectedType != 'income' &&
+        selectedType != 'expense') {
+      _showError(
+        AppStrings.invalidTransaction,
+        AppStrings.updateTransactionError,
+      );
+      return;
+    }
+
+    // --------------------------------------------------------------
+    // UPDATE TRANSACTION
+    // --------------------------------------------------------------
+
     try {
+      if (!mounted) return;
+
       setState(() {
         isLoading = true;
         isUpdated = false;
@@ -106,6 +145,10 @@ class _EditTransactionViewState extends State<EditTransactionView> {
         isUpdated = true;
       });
 
+      // ------------------------------------------------------------
+      // SUCCESS
+      // ------------------------------------------------------------
+
       Get.snackbar(
         AppStrings.transactionUpdated,
         AppStrings.transactionUpdatedSuccessfully,
@@ -120,7 +163,13 @@ class _EditTransactionViewState extends State<EditTransactionView> {
       if (!mounted) return;
 
       Get.back();
-    } catch (e) {
+    }
+
+    // --------------------------------------------------------------
+    // TRANSACTION NOT FOUND
+    // --------------------------------------------------------------
+
+    on Exception catch (e) {
       if (!mounted) return;
 
       setState(() {
@@ -128,25 +177,97 @@ class _EditTransactionViewState extends State<EditTransactionView> {
         isUpdated = false;
       });
 
-      Get.snackbar(
+      final errorMessage = e.toString().toLowerCase();
+
+      if (errorMessage.contains('transaction not found')) {
+        _showError(
+          AppStrings.invalidTransaction,
+          AppStrings.transactionNotFound,
+        );
+        return;
+      }
+
+      // ------------------------------------------------------------
+      // STORAGE / UPDATE ERROR
+      // ------------------------------------------------------------
+
+      if (errorMessage.contains('hive') ||
+          errorMessage.contains('box') ||
+          errorMessage.contains('storage') ||
+          errorMessage.contains('save') ||
+          errorMessage.contains('put') ||
+          errorMessage.contains('update')) {
+        _showError(
+          AppStrings.error,
+          AppStrings.updateStorageError,
+        );
+        return;
+      }
+
+      // ------------------------------------------------------------
+      // OTHER EXPECTED ERROR
+      // ------------------------------------------------------------
+
+      _showError(
         AppStrings.error,
         AppStrings.updateTransactionError,
-        snackPosition: SnackPosition.BOTTOM,
-        margin: const EdgeInsets.all(15),
+      );
+    }
+
+    // --------------------------------------------------------------
+    // UNEXPECTED ERROR
+    // --------------------------------------------------------------
+
+    catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        isLoading = false;
+        isUpdated = false;
+      });
+
+      _showError(
+        AppStrings.error,
+        AppStrings.unexpectedError,
       );
     }
   }
+
+  // ================================================================
+  // ERROR SNACKBAR
+  // ================================================================
+
+  void _showError(
+      String title,
+      String message,
+      ) {
+    Get.snackbar(
+      title,
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      margin: const EdgeInsets.all(15),
+    );
+  }
+
+  // ================================================================
+  // DISPOSE
+  // ================================================================
 
   @override
   void dispose() {
     titleController.dispose();
     amountController.dispose();
+
     super.dispose();
   }
 
+  // ================================================================
+  // BUILD
+  // ================================================================
+
   @override
   Widget build(BuildContext context) {
-    final isIncome = selectedType == AppStrings.income;
+    final isIncome = selectedType == 'income';
 
     final Color selectedColor =
     isIncome ? AppColors.income : AppColors.expense;
@@ -283,8 +404,10 @@ class _EditTransactionViewState extends State<EditTransactionView> {
                     selectedBackground:
                     AppColors.incomeBackground,
                     onTap: () {
+                      if (isLoading || isUpdated) return;
+
                       setState(() {
-                        selectedType = AppStrings.income;
+                        selectedType = 'income';
                       });
                     },
                   ),
@@ -303,8 +426,10 @@ class _EditTransactionViewState extends State<EditTransactionView> {
                     selectedBackground:
                     AppColors.expenseBackground,
                     onTap: () {
+                      if (isLoading || isUpdated) return;
+
                       setState(() {
-                        selectedType = AppStrings.expense;
+                        selectedType = 'expense';
                       });
                     },
                   ),
@@ -327,26 +452,32 @@ class _EditTransactionViewState extends State<EditTransactionView> {
 
             TextField(
               controller: titleController,
-              textCapitalization: TextCapitalization.sentences,
+              enabled: !isLoading && !isUpdated,
+              textCapitalization:
+              TextCapitalization.sentences,
               decoration: InputDecoration(
                 hintText: AppStrings.transactionTitleHint,
                 hintStyle: AppTextStyles.transactionHint,
                 filled: true,
                 fillColor: AppColors.white,
+
                 prefixIcon: const Icon(
                   Icons.description_outlined,
                   color: AppColors.textGrey,
                 ),
+
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
                 ),
+
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: const BorderSide(
                     color: AppColors.grey200,
                   ),
                 ),
+
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: const BorderSide(
@@ -354,6 +485,7 @@ class _EditTransactionViewState extends State<EditTransactionView> {
                     width: 1.5,
                   ),
                 ),
+
                 contentPadding:
                 const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -377,6 +509,7 @@ class _EditTransactionViewState extends State<EditTransactionView> {
 
             TextField(
               controller: amountController,
+              enabled: !isLoading && !isUpdated,
               keyboardType:
               const TextInputType.numberWithOptions(
                 decimal: true,
@@ -505,6 +638,7 @@ class _EditTransactionViewState extends State<EditTransactionView> {
                 (isLoading || isUpdated)
                     ? null
                     : updateTransaction,
+
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
                   isUpdated

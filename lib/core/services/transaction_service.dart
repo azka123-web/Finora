@@ -16,13 +16,20 @@ class TransactionService {
   // ================================================================
 
   String get currentUserEmail {
-    return sessionBox.get(
-      'userEmail',
-      defaultValue: '',
-    )
-        .toString()
-        .trim()
-        .toLowerCase();
+    try {
+      return sessionBox
+          .get(
+        'userEmail',
+        defaultValue: '',
+      )
+          .toString()
+          .trim()
+          .toLowerCase();
+    } catch (e) {
+      throw Exception(
+        'Unable to read the current user session.',
+      );
+    }
   }
 
   // ================================================================
@@ -34,23 +41,31 @@ class TransactionService {
     required double amount,
     required String type,
   }) async {
-    final email = currentUserEmail;
+    try {
+      final email = currentUserEmail;
 
-    if (email.isEmpty) {
+      if (email.isEmpty) {
+        throw Exception(
+          'No logged-in user found.',
+        );
+      }
+
+      final transaction = TransactionModel(
+        title: title.trim(),
+        amount: amount,
+        type: type.toLowerCase(),
+        date: DateTime.now(),
+        userEmail: email,
+      );
+
+      await transactionBox.add(transaction);
+    } on Exception {
+      rethrow;
+    } catch (e) {
       throw Exception(
-        'No logged-in user found.',
+        'Unable to save the transaction.',
       );
     }
-
-    final transaction = TransactionModel(
-      title: title.trim(),
-      amount: amount,
-      type: type.toLowerCase(),
-      date: DateTime.now(),
-      userEmail: email,
-    );
-
-    await transactionBox.add(transaction);
   }
 
   // ================================================================
@@ -63,28 +78,36 @@ class TransactionService {
     required double amount,
     required String type,
   }) async {
-    final oldTransaction =
-    transactionBox.get(index);
+    try {
+      final oldTransaction =
+      transactionBox.get(index);
 
-    if (oldTransaction == null) {
+      if (oldTransaction == null) {
+        throw Exception(
+          'Transaction not found.',
+        );
+      }
+
+      final updatedTransaction =
+      TransactionModel(
+        title: title.trim(),
+        amount: amount,
+        type: type.toLowerCase(),
+        date: DateTime.now(),
+        userEmail: oldTransaction.userEmail,
+      );
+
+      await transactionBox.put(
+        index,
+        updatedTransaction,
+      );
+    } on Exception {
+      rethrow;
+    } catch (e) {
       throw Exception(
-        'Transaction not found.',
+        'Unable to update the transaction.',
       );
     }
-
-    final updatedTransaction =
-    TransactionModel(
-      title: title.trim(),
-      amount: amount,
-      type: type.toLowerCase(),
-      date: DateTime.now(),
-      userEmail: oldTransaction.userEmail,
-    );
-
-    await transactionBox.put(
-      index,
-      updatedTransaction,
-    );
   }
 
   // ================================================================
@@ -94,19 +117,31 @@ class TransactionService {
   Future<void> deleteTransaction(
       int index,
       ) async {
-    final transaction =
-    transactionBox.get(index);
+    try {
+      final transaction =
+      transactionBox.get(index);
 
-    if (transaction == null) {
-      return;
+      if (transaction == null) {
+        throw Exception(
+          'Transaction not found.',
+        );
+      }
+
+      if (transaction.userEmail !=
+          currentUserEmail) {
+        throw Exception(
+          'You are not allowed to delete this transaction.',
+        );
+      }
+
+      await transactionBox.delete(index);
+    } on Exception {
+      rethrow;
+    } catch (e) {
+      throw Exception(
+        'Unable to delete the transaction.',
+      );
     }
-
-    if (transaction.userEmail !=
-        currentUserEmail) {
-      return;
-    }
-
-    await transactionBox.delete(index);
   }
 
   // ================================================================
@@ -114,25 +149,35 @@ class TransactionService {
   // ================================================================
 
   Future<void> clearAllTransactions() async {
-    final email = currentUserEmail;
+    try {
+      final email = currentUserEmail;
 
-    if (email.isEmpty) {
-      return;
+      if (email.isEmpty) {
+        throw Exception(
+          'No logged-in user found.',
+        );
+      }
+
+      final keysToDelete = transactionBox
+          .toMap()
+          .entries
+          .where(
+            (entry) =>
+        entry.value.userEmail == email,
+      )
+          .map((entry) => entry.key)
+          .toList();
+
+      await transactionBox.deleteAll(
+        keysToDelete,
+      );
+    } on Exception {
+      rethrow;
+    } catch (e) {
+      throw Exception(
+        'Unable to clear your transactions.',
+      );
     }
-
-    final keysToDelete = transactionBox
-        .toMap()
-        .entries
-        .where(
-          (entry) =>
-      entry.value.userEmail == email,
-    )
-        .map((entry) => entry.key)
-        .toList();
-
-    await transactionBox.deleteAll(
-      keysToDelete,
-    );
   }
 
   // ================================================================
@@ -141,25 +186,33 @@ class TransactionService {
 
   List<TransactionModel>
   get currentUserTransactions {
-    final email = currentUserEmail;
+    try {
+      final email = currentUserEmail;
 
-    if (email.isEmpty) {
-      return [];
+      if (email.isEmpty) {
+        return [];
+      }
+
+      final list = transactionBox.values
+          .where(
+            (transaction) =>
+        transaction.userEmail == email,
+      )
+          .toList();
+
+      list.sort(
+            (a, b) =>
+            b.date.compareTo(a.date),
+      );
+
+      return list;
+    } on Exception {
+      rethrow;
+    } catch (e) {
+      throw Exception(
+        'Unable to load your transactions.',
+      );
     }
-
-    final list = transactionBox.values
-        .where(
-          (transaction) =>
-      transaction.userEmail == email,
-    )
-        .toList();
-
-    list.sort(
-          (a, b) =>
-          b.date.compareTo(a.date),
-    );
-
-    return list;
   }
 
   // ================================================================
@@ -167,16 +220,24 @@ class TransactionService {
   // ================================================================
 
   double get totalIncome {
-    return currentUserTransactions
-        .where(
-          (transaction) =>
-      transaction.type == 'income',
-    )
-        .fold(
-      0.0,
-          (sum, transaction) =>
-      sum + transaction.amount,
-    );
+    try {
+      return currentUserTransactions
+          .where(
+            (transaction) =>
+        transaction.type == 'income',
+      )
+          .fold(
+        0.0,
+            (sum, transaction) =>
+        sum + transaction.amount,
+      );
+    } on Exception {
+      rethrow;
+    } catch (e) {
+      throw Exception(
+        'Unable to calculate total income.',
+      );
+    }
   }
 
   // ================================================================
@@ -184,16 +245,24 @@ class TransactionService {
   // ================================================================
 
   double get totalExpense {
-    return currentUserTransactions
-        .where(
-          (transaction) =>
-      transaction.type == 'expense',
-    )
-        .fold(
-      0.0,
-          (sum, transaction) =>
-      sum + transaction.amount,
-    );
+    try {
+      return currentUserTransactions
+          .where(
+            (transaction) =>
+        transaction.type == 'expense',
+      )
+          .fold(
+        0.0,
+            (sum, transaction) =>
+        sum + transaction.amount,
+      );
+    } on Exception {
+      rethrow;
+    } catch (e) {
+      throw Exception(
+        'Unable to calculate total expenses.',
+      );
+    }
   }
 
   // ================================================================
@@ -201,15 +270,30 @@ class TransactionService {
   // ================================================================
 
   double get balance {
-    return totalIncome - totalExpense;
+    try {
+      return totalIncome - totalExpense;
+    } on Exception {
+      rethrow;
+    } catch (e) {
+      throw Exception(
+        'Unable to calculate your current balance.',
+      );
+    }
   }
 
   // ================================================================
   // ALL CURRENT USER TRANSACTIONS
   // ================================================================
 
-  List<TransactionModel>
-  get transactions {
-    return currentUserTransactions;
+  List<TransactionModel> get transactions {
+    try {
+      return currentUserTransactions;
+    } on Exception {
+      rethrow;
+    } catch (e) {
+      throw Exception(
+        'Unable to load your transactions.',
+      );
+    }
   }
 }

@@ -23,15 +23,24 @@ class LocalStorageService {
   // ============================================================
 
   UserModel? findUserByEmail(String email) {
-    final normalizedEmail = email.trim().toLowerCase();
+    try {
+      final normalizedEmail =
+      email.trim().toLowerCase();
 
-    for (final user in usersBox.values) {
-      if (user.email.toLowerCase() == normalizedEmail) {
-        return user;
+      for (final user in usersBox.values) {
+        if (user.email.toLowerCase() ==
+            normalizedEmail) {
+          return user;
+        }
       }
-    }
 
-    return null;
+      return null;
+    } catch (e) {
+      throw Exception(
+        'Your saved account data could not be accessed. '
+            'Please restart the app and try again.',
+      );
+    }
   }
 
   // ============================================================
@@ -39,7 +48,14 @@ class LocalStorageService {
   // ============================================================
 
   bool emailExists(String email) {
-    return findUserByEmail(email) != null;
+    try {
+      return findUserByEmail(email) != null;
+    } catch (e) {
+      throw Exception(
+        'We could not check whether this email is already registered. '
+            'Please try again.',
+      );
+    }
   }
 
   // ============================================================
@@ -50,19 +66,47 @@ class LocalStorageService {
       String email,
       String password,
       ) {
-    final normalizedEmail = email.trim().toLowerCase();
+    try {
+      final normalizedEmail =
+      email.trim().toLowerCase();
 
-    for (final user in usersBox.values) {
-      if (user.email.toLowerCase() != normalizedEmail) {
-        continue;
+      for (final user in usersBox.values) {
+        if (user.email.toLowerCase() !=
+            normalizedEmail) {
+          continue;
+        }
+
+        // Verify the entered password against
+        // the securely stored password hash.
+        if (BCrypt.checkpw(
+          password,
+          user.password,
+        )) {
+          return user;
+        }
+
+        // Email exists, but password is incorrect.
+        throw Exception(
+          'The password you entered is incorrect. '
+              'Please check your password and try again.',
+        );
       }
 
-      if (BCrypt.checkpw(password, user.password)) {
-        return user;
+      // No account was found with this email.
+      return null;
+    } catch (e) {
+      if (e is Exception &&
+          e.toString().contains(
+            'The password you entered is incorrect.',
+          )) {
+        rethrow;
       }
+
+      throw Exception(
+        'We could not verify your login details. '
+            'Please try again.',
+      );
     }
-
-    return null;
   }
 
   // ============================================================
@@ -70,7 +114,14 @@ class LocalStorageService {
   // ============================================================
 
   Future<void> saveUser(UserModel user) async {
-    await usersBox.add(user);
+    try {
+      await usersBox.add(user);
+    } catch (e) {
+      throw Exception(
+        'Your account could not be saved. '
+            'Please try signing up again.',
+      );
+    }
   }
 
   // ============================================================
@@ -78,8 +129,22 @@ class LocalStorageService {
   // ============================================================
 
   Future<void> saveSession(String email) async {
-    await sessionBox.put('isLoggedIn', true);
-    await sessionBox.put('userEmail', email);
+    try {
+      await sessionBox.put(
+        'isLoggedIn',
+        true,
+      );
+
+      await sessionBox.put(
+        'userEmail',
+        email,
+      );
+    } catch (e) {
+      throw Exception(
+        'Your login was successful, but your session '
+            'could not be saved. Please log in again.',
+      );
+    }
   }
 
   // ============================================================
@@ -87,8 +152,21 @@ class LocalStorageService {
   // ============================================================
 
   Future<void> clearSession() async {
-    await sessionBox.put('isLoggedIn', false);
-    await sessionBox.delete('userEmail');
+    try {
+      await sessionBox.put(
+        'isLoggedIn',
+        false,
+      );
+
+      await sessionBox.delete(
+        'userEmail',
+      );
+    } catch (e) {
+      throw Exception(
+        'Your account could not be logged out properly. '
+            'Please try again.',
+      );
+    }
   }
 
   // ============================================================
@@ -96,14 +174,23 @@ class LocalStorageService {
   // ============================================================
 
   String? get currentUserEmail {
-    final email = sessionBox.get('userEmail');
+    try {
+      final email =
+      sessionBox.get('userEmail');
 
-    if (email == null) {
-      return null;
+      if (email == null) {
+        return null;
+      }
+
+      final value =
+      email.toString().trim();
+
+      return value.isEmpty ? null : value;
+    } catch (e) {
+      throw Exception(
+        'Your current login session could not be read. '
+            'Please log in again.',
+      );
     }
-
-    final value = email.toString().trim();
-
-    return value.isEmpty ? null : value;
   }
 }

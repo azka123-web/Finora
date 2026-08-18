@@ -40,7 +40,7 @@ class LoginController extends GetxController {
   }
 
   // ============================================================
-  // NORMAL EMAIL/PASSWORD LOGIN
+  // NORMAL EMAIL / PASSWORD LOGIN
   // ============================================================
 
   Future<void> login() async {
@@ -119,7 +119,7 @@ class LoginController extends GetxController {
       }
 
       // ========================================================
-      // LOGIN FAILED
+      // INVALID CREDENTIALS
       // ========================================================
 
       isLoading.value = false;
@@ -129,11 +129,39 @@ class LoginController extends GetxController {
         AppStrings.incorrectEmailOrPassword,
         snackPosition: SnackPosition.BOTTOM,
       );
-    } catch (e) {
+    } on LoginServiceException catch (e) {
+      isLoading.value = false;
+
+      switch (e.error) {
+        case LoginServiceError.storageFailure:
+          Get.snackbar(
+            AppStrings.error,
+            AppStrings.storageError,
+            snackPosition: SnackPosition.BOTTOM,
+          );
+          break;
+
+        case LoginServiceError.sessionFailure:
+          Get.snackbar(
+            AppStrings.error,
+            AppStrings.sessionError,
+            snackPosition: SnackPosition.BOTTOM,
+          );
+          break;
+
+        case LoginServiceError.unexpected:
+          Get.snackbar(
+            AppStrings.loginFailed,
+            AppStrings.loginErrorMessage,
+            snackPosition: SnackPosition.BOTTOM,
+          );
+          break;
+      }
+    } catch (_) {
       isLoading.value = false;
 
       Get.snackbar(
-        AppStrings.error,
+        AppStrings.loginFailed,
         AppStrings.loginErrorMessage,
         snackPosition: SnackPosition.BOTTOM,
       );
@@ -221,7 +249,7 @@ class LoginController extends GetxController {
             AppStrings.firebaseAuthenticationFailed,
         snackPosition: SnackPosition.BOTTOM,
       );
-    } catch (e) {
+    } catch (_) {
       isGoogleLoading.value = false;
 
       Get.snackbar(

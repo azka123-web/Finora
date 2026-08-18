@@ -12,24 +12,68 @@ class HomeView extends StatelessWidget {
   const HomeView({super.key});
 
   // ================================================================
+  // LOCAL ERROR MESSAGES
+  // ================================================================
+  // These are kept here so HomeView does not depend on AppStrings
+  // constants that may not exist in your current AppStrings file.
+
+  static const String _errorTitle = 'Error';
+
+  static const String _logoutErrorMessage =
+      'Unable to logout. Please try again.';
+
+  static const String _navigationErrorMessage =
+      'Unable to open this screen. Please try again.';
+
+  static const String _transactionOptionsErrorMessage =
+      'Unable to open transaction options. Please try again.';
+
+  static const String _deleteErrorMessage =
+      'Unable to delete transaction. Please try again.';
+
+  // ================================================================
+  // SAFE SNACKBAR
+  // ================================================================
+
+  static void _showErrorSnackbar(String message) {
+    try {
+      Get.snackbar(
+        _errorTitle,
+        message,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(15),
+        duration: const Duration(seconds: 3),
+      );
+    } catch (_) {
+      // Prevent snackbar errors from causing another exception.
+    }
+  }
+
+  // ================================================================
   // LOGOUT
   // ================================================================
 
   Future<void> logout() async {
-    final sessionBox = Hive.box('sessionBox');
+    try {
+      final sessionBox = Hive.box('sessionBox');
 
-    await sessionBox.put(
-      'isLoggedIn',
-      false,
-    );
+      await sessionBox.put(
+        'isLoggedIn',
+        false,
+      );
 
-    await sessionBox.delete(
-      'userEmail',
-    );
+      await sessionBox.delete(
+        'userEmail',
+      );
 
-    Get.offAllNamed(
-      AppRoutes.login,
-    );
+      Get.offAllNamed(
+        AppRoutes.login,
+      );
+    } catch (e) {
+      _showErrorSnackbar(
+        _logoutErrorMessage,
+      );
+    }
   }
 
   // ================================================================
@@ -41,77 +85,87 @@ class HomeView extends StatelessWidget {
       Box<TransactionModel> box,
       int index,
       ) async {
-    final shouldDelete =
-    await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius:
-            BorderRadius.circular(20),
-          ),
-          title: const Text(
-            AppStrings
-                .deleteTransactionQuestion,
-            style:
-            AppTextStyles.dialogTitle,
-          ),
-          content: const Text(
-            AppStrings
-                .transactionDeleteWarning,
-            style:
-            AppTextStyles.dialogContent,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(
-                  context,
-                  false,
-                );
-              },
-              child: const Text(
-                AppStrings.cancel,
-                style:
-                AppTextStyles.dialogButton,
-              ),
+    try {
+      final shouldDelete = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(
-                  context,
-                  true,
-                );
-              },
-              style:
-              ElevatedButton.styleFrom(
-                backgroundColor:
-                AppColors.expenseRed,
-                foregroundColor:
-                AppColors.white,
-              ),
-              child: const Text(
-                AppStrings.delete,
-                style:
-                AppTextStyles.dialogButton,
-              ),
+            title: const Text(
+              AppStrings.deleteTransactionQuestion,
+              style: AppTextStyles.dialogTitle,
             ),
-          ],
-        );
-      },
-    );
+            content: const Text(
+              AppStrings.transactionDeleteWarning,
+              style: AppTextStyles.dialogContent,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(
+                    dialogContext,
+                    false,
+                  );
+                },
+                child: const Text(
+                  AppStrings.cancel,
+                  style: AppTextStyles.dialogButton,
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(
+                    dialogContext,
+                    true,
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.expenseRed,
+                  foregroundColor: AppColors.white,
+                ),
+                child: const Text(
+                  AppStrings.delete,
+                  style: AppTextStyles.dialogButton,
+                ),
+              ),
+            ],
+          );
+        },
+      );
 
-    if (shouldDelete == true) {
+      if (shouldDelete != true) {
+        return;
+      }
+
+      if (!context.mounted) {
+        return;
+      }
+
       await box.delete(index);
 
-      Get.snackbar(
-        AppStrings.transactionDeleted,
-        AppStrings
-            .transactionRemovedSuccessfully,
-        snackPosition:
-        SnackPosition.BOTTOM,
-        margin:
-        const EdgeInsets.all(15),
+      if (!context.mounted) {
+        return;
+      }
+
+      try {
+        Get.snackbar(
+          AppStrings.transactionDeleted,
+          AppStrings.transactionRemovedSuccessfully,
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(15),
+        );
+      } catch (_) {
+        // Ignore snackbar failure.
+      }
+    } catch (e) {
+      if (!context.mounted) {
+        return;
+      }
+
+      _showErrorSnackbar(
+        _deleteErrorMessage,
       );
     }
   }
@@ -126,145 +180,144 @@ class HomeView extends StatelessWidget {
       int index,
       TransactionModel transaction,
       ) {
-    showModalBottomSheet(
-      context: context,
-      shape:
-      const RoundedRectangleBorder(
-        borderRadius:
-        BorderRadius.vertical(
-          top: Radius.circular(25),
-        ),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding:
-            const EdgeInsets.only(
-              top: 10,
-              bottom: 15,
-            ),
-            child: Column(
-              mainAxisSize:
-              MainAxisSize.min,
-              children: [
-                Container(
-                  width: 45,
-                  height: 5,
-                  decoration:
-                  BoxDecoration(
-                    color:
-                    AppColors.grey200,
-                    borderRadius:
-                    BorderRadius.circular(
-                      10,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(
-                  height: 15,
-                ),
-
-                const Text(
-                  AppStrings
-                      .transactionOptions,
-                  style: AppTextStyles
-                      .bottomSheetTitle,
-                ),
-
-                const SizedBox(
-                  height: 10,
-                ),
-
-                // EDIT
-                ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor:
-                    AppColors
-                        .lightBlueBackground,
-                    child: const Icon(
-                      Icons
-                          .edit_outlined,
-                      color:
-                      AppColors.navy,
-                    ),
-                  ),
-                  title: const Text(
-                    AppStrings
-                        .editTransaction,
-                    style: AppTextStyles
-                        .optionTitle,
-                  ),
-                  subtitle: const Text(
-                    AppStrings
-                        .editTransactionSubtitle,
-                    style: AppTextStyles
-                        .optionSubtitle,
-                  ),
-                  onTap: () {
-                    Navigator.pop(
-                      context,
-                    );
-
-                    Get.toNamed(
-                      AppRoutes
-                          .editTransaction,
-                      arguments: {
-                        'index': index,
-                        'transaction':
-                        transaction,
-                      },
-                    );
-                  },
-                ),
-
-                // DELETE
-                ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor:
-                    AppColors
-                        .expenseRed
-                        .withValues(
-                      alpha: 0.08,
-                    ),
-                    child: const Icon(
-                      Icons
-                          .delete_outline,
-                      color:
-                      AppColors
-                          .expenseRed,
-                    ),
-                  ),
-                  title: const Text(
-                    AppStrings
-                        .deleteTransaction,
-                    style: AppTextStyles
-                        .optionTitle,
-                  ),
-                  subtitle: const Text(
-                    AppStrings
-                        .deleteTransactionSubtitle,
-                    style: AppTextStyles
-                        .optionSubtitle,
-                  ),
-                  onTap: () {
-                    Navigator.pop(
-                      context,
-                    );
-
-                    deleteTransaction(
-                      context,
-                      box,
-                      index,
-                    );
-                  },
-                ),
-              ],
-            ),
+    try {
+      showModalBottomSheet(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(25),
           ),
-        );
-      },
-    );
+        ),
+        builder: (sheetContext) {
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.only(
+                top: 10,
+                bottom: 15,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // ==================================================
+                  // SHEET HANDLE
+                  // ==================================================
+
+                  Container(
+                    width: 45,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: AppColors.grey200,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  // ==================================================
+                  // TITLE
+                  // ==================================================
+
+                  const Text(
+                    AppStrings.transactionOptions,
+                    style: AppTextStyles.bottomSheetTitle,
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // ==================================================
+                  // EDIT
+                  // ==================================================
+
+                  ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor:
+                      AppColors.lightBlueBackground,
+                      child: const Icon(
+                        Icons.edit_outlined,
+                        color: AppColors.navy,
+                      ),
+                    ),
+                    title: const Text(
+                      AppStrings.editTransaction,
+                      style: AppTextStyles.optionTitle,
+                    ),
+                    subtitle: const Text(
+                      AppStrings.editTransactionSubtitle,
+                      style: AppTextStyles.optionSubtitle,
+                    ),
+                    onTap: () {
+                      try {
+                        Navigator.pop(
+                          sheetContext,
+                        );
+
+                        Get.toNamed(
+                          AppRoutes.editTransaction,
+                          arguments: {
+                            'index': index,
+                            'transaction': transaction,
+                          },
+                        );
+                      } catch (e) {
+                        _showErrorSnackbar(
+                          _navigationErrorMessage,
+                        );
+                      }
+                    },
+                  ),
+
+                  // ==================================================
+                  // DELETE
+                  // ==================================================
+
+                  ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor:
+                      AppColors.expenseRed.withValues(
+                        alpha: 0.08,
+                      ),
+                      child: const Icon(
+                        Icons.delete_outline,
+                        color: AppColors.expenseRed,
+                      ),
+                    ),
+                    title: const Text(
+                      AppStrings.deleteTransaction,
+                      style: AppTextStyles.optionTitle,
+                    ),
+                    subtitle: const Text(
+                      AppStrings.deleteTransactionSubtitle,
+                      style: AppTextStyles.optionSubtitle,
+                    ),
+                    onTap: () {
+                      try {
+                        Navigator.pop(
+                          sheetContext,
+                        );
+
+                        deleteTransaction(
+                          context,
+                          box,
+                          index,
+                        );
+                      } catch (e) {
+                        _showErrorSnackbar(
+                          _transactionOptionsErrorMessage,
+                        );
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      _showErrorSnackbar(
+        _transactionOptionsErrorMessage,
+      );
+    }
   }
 
   // ================================================================
@@ -273,8 +326,11 @@ class HomeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sessionBox =
-    Hive.box('sessionBox');
+    // ==============================================================
+    // SESSION BOX
+    // ==============================================================
+
+    final sessionBox = Hive.box('sessionBox');
 
     final userEmail = sessionBox
         .get(
@@ -285,68 +341,76 @@ class HomeView extends StatelessWidget {
         .trim()
         .toLowerCase();
 
-    final transactionBox =
-    Hive.box<TransactionModel>(
+    // ==============================================================
+    // TRANSACTION BOX
+    // ==============================================================
+
+    final transactionBox = Hive.box<TransactionModel>(
       'transactionsBox',
     );
 
-    return ValueListenableBuilder(
-      valueListenable:
-      transactionBox.listenable(),
+    // ==============================================================
+    // LISTENABLE BUILDER
+    // ==============================================================
+
+    return ValueListenableBuilder<Box<TransactionModel>>(
+      valueListenable: transactionBox.listenable(),
       builder: (
           context,
-          Box<TransactionModel> box,
+          box,
           _,
           ) {
         // ==========================================================
-        // ONLY CURRENT USER'S TRANSACTIONS
+        // CURRENT USER'S TRANSACTIONS ONLY
         // ==========================================================
 
-        final transactionEntries =
-        box.toMap().entries
+        final transactionEntries = box
+            .toMap()
+            .entries
             .where(
               (entry) =>
-          entry.value.userEmail
-              .toLowerCase() ==
+          entry.value.userEmail.toLowerCase() ==
               userEmail,
         )
             .toList();
 
         // ==========================================================
-        // CALCULATE TOTALS
+        // CALCULATE TOTAL INCOME
         // ==========================================================
 
         double totalIncome = 0;
+
+        // ==========================================================
+        // CALCULATE TOTAL EXPENSE
+        // ==========================================================
+
         double totalExpense = 0;
 
-        for (final entry
-        in transactionEntries) {
-          final transaction =
-              entry.value;
+        for (final entry in transactionEntries) {
+          final transaction = entry.value;
 
-          if (transaction.type ==
-              'income') {
-            totalIncome +=
-                transaction.amount;
-          } else if (transaction.type ==
-              'expense') {
-            totalExpense +=
-                transaction.amount;
+          if (transaction.type == 'income') {
+            totalIncome += transaction.amount;
+          } else if (transaction.type == 'expense') {
+            totalExpense += transaction.amount;
           }
         }
+
+        // ==========================================================
+        // TOTAL BALANCE
+        // ==========================================================
 
         final totalBalance =
             totalIncome - totalExpense;
 
         // ==========================================================
         // SORT LATEST FIRST
-        // ==========================================================
+        // ==============================================================
 
         transactionEntries.sort(
-              (a, b) =>
-              b.value.date.compareTo(
-                a.value.date,
-              ),
+              (a, b) => b.value.date.compareTo(
+            a.value.date,
+          ),
         );
 
         // ==========================================================
@@ -354,8 +418,7 @@ class HomeView extends StatelessWidget {
         // ==========================================================
 
         return Scaffold(
-          backgroundColor:
-          AppColors.background,
+          backgroundColor: AppColors.background,
 
           // ========================================================
           // APP BAR
@@ -363,81 +426,71 @@ class HomeView extends StatelessWidget {
 
           appBar: AppBar(
             elevation: 0,
-            backgroundColor:
-            AppColors.background,
-            surfaceTintColor:
-            Colors.transparent,
+            backgroundColor: AppColors.background,
+            surfaceTintColor: Colors.transparent,
             titleSpacing: 20,
             title: const Text(
               AppStrings.finora,
-              style:
-              AppTextStyles.homeLogo,
+              style: AppTextStyles.homeLogo,
             ),
             actions: [
+              // ====================================================
+              // HISTORY BUTTON
+              // ====================================================
+
               IconButton(
-                tooltip: AppStrings
-                    .transactionHistory,
+                tooltip: AppStrings.transactionHistory,
                 onPressed: () {
-                  Get.toNamed(
-                    AppRoutes
-                        .transactionHistory,
-                  );
+                  try {
+                    Get.toNamed(
+                      AppRoutes.transactionHistory,
+                    );
+                  } catch (e) {
+                    _showErrorSnackbar(
+                      _navigationErrorMessage,
+                    );
+                  }
                 },
                 icon: Container(
                   width: 42,
                   height: 42,
-                  decoration:
-                  BoxDecoration(
-                    color:
-                    AppColors.white,
-                    borderRadius:
-                    BorderRadius.circular(
-                      13,
-                    ),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(13),
                   ),
                   child: const Icon(
-                    Icons
-                        .history_rounded,
-                    color:
-                    AppColors.navy,
+                    Icons.history_rounded,
+                    color: AppColors.navy,
                     size: 22,
                   ),
                 ),
               ),
 
-              const SizedBox(
-                width: 4,
-              ),
+              const SizedBox(width: 4),
+
+              // ====================================================
+              // LOGOUT BUTTON
+              // ====================================================
 
               IconButton(
-                tooltip:
-                AppStrings.logout,
+                tooltip: AppStrings.logout,
                 onPressed: logout,
                 icon: Container(
                   width: 42,
                   height: 42,
-                  decoration:
-                  BoxDecoration(
-                    color:
-                    AppColors.white,
-                    borderRadius:
-                    BorderRadius.circular(
-                      13,
-                    ),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(13),
                   ),
                   child: const Icon(
-                    Icons
-                        .logout_rounded,
-                    color:
-                    Colors.redAccent,
+                    Icons.logout_rounded,
+                    color: Colors.redAccent,
                     size: 20,
                   ),
                 ),
               ),
 
-              const SizedBox(
-                width: 12,
-              ),
+              const SizedBox(width: 12),
             ],
           ),
 
@@ -445,20 +498,16 @@ class HomeView extends StatelessWidget {
           // BODY
           // ========================================================
 
-          body:
-          SingleChildScrollView(
-            physics:
-            const BouncingScrollPhysics(),
-            padding:
-            const EdgeInsets.fromLTRB(
+          body: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(
               20,
               5,
               20,
               100,
             ),
             child: Column(
-              crossAxisAlignment:
-              CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ==================================================
                 // GREETING
@@ -469,61 +518,43 @@ class HomeView extends StatelessWidget {
                     Container(
                       width: 48,
                       height: 48,
-                      decoration:
-                      BoxDecoration(
-                        gradient:
-                        const LinearGradient(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
                           colors: [
                             AppColors.navy,
                             AppColors.blue,
                           ],
                         ),
-                        borderRadius:
-                        BorderRadius.circular(
-                          15,
-                        ),
+                        borderRadius: BorderRadius.circular(15),
                       ),
                       child: const Icon(
-                        Icons
-                            .person_outline_rounded,
-                        color:
-                        AppColors.white,
+                        Icons.person_outline_rounded,
+                        color: AppColors.white,
                         size: 25,
                       ),
                     ),
 
-                    const SizedBox(
-                      width: 12,
-                    ),
+                    const SizedBox(width: 12),
 
                     Expanded(
                       child: Column(
                         crossAxisAlignment:
-                        CrossAxisAlignment
-                            .start,
+                        CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            AppStrings
-                                .welcomeBack,
-                            style: AppTextStyles
-                                .welcomeText,
+                            AppStrings.welcomeBack,
+                            style: AppTextStyles.welcomeText,
                           ),
 
-                          const SizedBox(
-                            height: 3,
-                          ),
+                          const SizedBox(height: 3),
 
                           Text(
                             userEmail.isEmpty
-                                ? AppStrings
-                                .finoraUser
+                                ? AppStrings.finoraUser
                                 : userEmail,
                             maxLines: 1,
-                            overflow:
-                            TextOverflow
-                                .ellipsis,
-                            style: AppTextStyles
-                                .userEmail,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.userEmail,
                           ),
                         ],
                       ),
@@ -531,135 +562,89 @@ class HomeView extends StatelessWidget {
                   ],
                 ),
 
-                const SizedBox(
-                  height: 25,
-                ),
+                const SizedBox(height: 25),
 
                 // ==================================================
                 // BALANCE CARD
                 // ==================================================
 
                 Container(
-                  width:
-                  double.infinity,
-                  padding:
-                  const EdgeInsets.all(
-                    24,
-                  ),
-                  decoration:
-                  BoxDecoration(
-                    gradient:
-                    const LinearGradient(
-                      begin:
-                      Alignment.topLeft,
-                      end: Alignment
-                          .bottomRight,
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                       colors: [
                         AppColors.navy,
                         AppColors.blue,
                       ],
                     ),
-                    borderRadius:
-                    BorderRadius.circular(
-                      25,
-                    ),
+                    borderRadius: BorderRadius.circular(25),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors
-                            .navy
-                            .withValues(
+                        color: AppColors.navy.withValues(
                           alpha: 0.22,
                         ),
                         blurRadius: 20,
-                        offset:
-                        const Offset(
-                          0,
-                          10,
-                        ),
+                        offset: const Offset(0, 10),
                       ),
                     ],
                   ),
                   child: Column(
                     crossAxisAlignment:
-                    CrossAxisAlignment
-                        .start,
+                    CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
                           Container(
-                            padding:
-                            const EdgeInsets
-                                .all(
-                              8,
-                            ),
-                            decoration:
-                            BoxDecoration(
-                              color: AppColors
-                                  .white
-                                  .withValues(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color:
+                              AppColors.white.withValues(
                                 alpha: 0.12,
                               ),
                               borderRadius:
-                              BorderRadius
-                                  .circular(
-                                10,
-                              ),
+                              BorderRadius.circular(10),
                             ),
-                            child:
-                            const Icon(
+                            child: const Icon(
                               Icons
                                   .account_balance_wallet_outlined,
-                              color:
-                              AppColors
-                                  .white,
+                              color: AppColors.white,
                               size: 20,
                             ),
                           ),
 
-                          const SizedBox(
-                            width: 10,
-                          ),
+                          const SizedBox(width: 10),
 
                           const Text(
-                            AppStrings
-                                .totalBalance,
-                            style: AppTextStyles
-                                .balanceLabel,
+                            AppStrings.totalBalance,
+                            style: AppTextStyles.balanceLabel,
                           ),
                         ],
                       ),
 
-                      const SizedBox(
-                        height: 17,
-                      ),
+                      const SizedBox(height: 17),
 
                       Text(
                         '${AppStrings.currencyPrefix}'
                             '${totalBalance.toStringAsFixed(2)}',
-                        style: AppTextStyles
-                            .balanceAmount,
+                        style: AppTextStyles.balanceAmount,
                       ),
 
-                      const SizedBox(
-                        height: 8,
-                      ),
+                      const SizedBox(height: 8),
 
                       Text(
                         totalBalance >= 0
-                            ? AppStrings
-                            .managingFinancesWell
-                            : AppStrings
-                            .expensesHigherThanIncome,
-                        style: AppTextStyles
-                            .balanceMessage,
+                            ? AppStrings.managingFinancesWell
+                            : AppStrings.expensesHigherThanIncome,
+                        style: AppTextStyles.balanceMessage,
                       ),
                     ],
                   ),
                 ),
 
-                const SizedBox(
-                  height: 20,
-                ),
+                const SizedBox(height: 20),
 
                 // ==================================================
                 // INCOME & EXPENSE
@@ -668,108 +653,83 @@ class HomeView extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child:
-                      _summaryCard(
-                        title:
-                        AppStrings
-                            .income,
-                        amount:
-                        totalIncome,
-                        icon: Icons
-                            .arrow_downward_rounded,
+                      child: _summaryCard(
+                        title: AppStrings.income,
+                        amount: totalIncome,
+                        icon: Icons.arrow_downward_rounded,
                         iconBackground:
-                        AppColors
-                            .incomeBackground,
-                        iconColor:
-                        AppColors
-                            .incomeGreen,
+                        AppColors.incomeBackground,
+                        iconColor: AppColors.incomeGreen,
                       ),
                     ),
 
-                    const SizedBox(
-                      width: 14,
-                    ),
+                    const SizedBox(width: 14),
 
                     Expanded(
-                      child:
-                      _summaryCard(
-                        title:
-                        AppStrings
-                            .expenses,
-                        amount:
-                        totalExpense,
-                        icon: Icons
-                            .arrow_upward_rounded,
+                      child: _summaryCard(
+                        title: AppStrings.expenses,
+                        amount: totalExpense,
+                        icon: Icons.arrow_upward_rounded,
                         iconBackground:
-                        AppColors
-                            .expenseBackground,
-                        iconColor:
-                        AppColors
-                            .expenseRed,
+                        AppColors.expenseBackground,
+                        iconColor: AppColors.expenseRed,
                       ),
                     ),
                   ],
                 ),
 
-                const SizedBox(
-                  height: 30,
-                ),
+                const SizedBox(height: 30),
 
                 // ==================================================
-                // RECENT TRANSACTIONS
+                // RECENT TRANSACTIONS HEADER
                 // ==================================================
 
                 Row(
                   mainAxisAlignment:
-                  MainAxisAlignment
-                      .spaceBetween,
+                  MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      AppStrings
-                          .recentTransactions,
-                      style: AppTextStyles
-                          .sectionTitle,
+                      AppStrings.recentTransactions,
+                      style: AppTextStyles.sectionTitle,
                     ),
 
-                    if (transactionEntries
-                        .isNotEmpty)
+                    if (transactionEntries.isNotEmpty)
                       TextButton(
                         onPressed: () {
-                          Get.toNamed(
-                            AppRoutes
-                                .transactionHistory,
-                          );
+                          try {
+                            Get.toNamed(
+                              AppRoutes.transactionHistory,
+                            );
+                          } catch (e) {
+                            _showErrorSnackbar(
+                              _navigationErrorMessage,
+                            );
+                          }
                         },
-                        child:
-                        const Text(
-                          AppStrings
-                              .viewAll,
-                          style: AppTextStyles
-                              .viewAll,
+                        child: const Text(
+                          AppStrings.viewAll,
+                          style: AppTextStyles.viewAll,
                         ),
                       ),
                   ],
                 ),
 
-                const SizedBox(
-                  height: 10,
-                ),
+                const SizedBox(height: 10),
 
-                if (transactionEntries
-                    .isEmpty)
+                // ==================================================
+                // EMPTY / TRANSACTION LIST
+                // ==================================================
+
+                if (transactionEntries.isEmpty)
                   _emptyTransactions()
                 else
                   Column(
-                    children:
-                    transactionEntries
+                    children: transactionEntries
                         .take(5)
                         .map(
                           (entry) {
-                        final index =
-                        entry.key
-                        as int;
-                        final transaction =
-                            entry.value;
+                        final index = entry.key as int;
+                        final transaction = entry.value;
 
                         return GestureDetector(
                           onLongPress: () {
@@ -780,65 +740,57 @@ class HomeView extends StatelessWidget {
                               transaction,
                             );
                           },
-                          child:
-                          _transactionCard(
+                          child: _transactionCard(
                             transaction,
                           ),
                         );
                       },
-                    ).toList(),
+                    )
+                        .toList(),
                   ),
               ],
             ),
           ),
 
           // ========================================================
-          // ADD TRANSACTION
+          // ADD TRANSACTION BUTTON
           // ========================================================
 
-          floatingActionButton:
-          Container(
-            decoration:
-            BoxDecoration(
-              borderRadius:
-              BorderRadius.circular(
-                18,
-              ),
+          floatingActionButton: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.navy
-                      .withValues(
+                  color: AppColors.navy.withValues(
                     alpha: 0.25,
                   ),
                   blurRadius: 15,
-                  offset:
-                  const Offset(0, 7),
+                  offset: const Offset(0, 7),
                 ),
               ],
             ),
-            child:
-            FloatingActionButton
-                .extended(
+            child: FloatingActionButton.extended(
               onPressed: () {
-                Get.toNamed(
-                  AppRoutes
-                      .addTransaction,
-                );
+                try {
+                  Get.toNamed(
+                    AppRoutes.addTransaction,
+                  );
+                } catch (e) {
+                  _showErrorSnackbar(
+                    _navigationErrorMessage,
+                  );
+                }
               },
-              backgroundColor:
-              AppColors.navy,
-              foregroundColor:
-              AppColors.white,
+              backgroundColor: AppColors.navy,
+              foregroundColor: AppColors.white,
               elevation: 0,
               icon: const Icon(
                 Icons.add_rounded,
                 size: 23,
               ),
               label: const Text(
-                AppStrings
-                    .addTransaction,
-                style: AppTextStyles
-                    .addTransactionButton,
+                AppStrings.addTransaction,
+                style: AppTextStyles.addTransactionButton,
               ),
             ),
           ),
@@ -859,33 +811,25 @@ class HomeView extends StatelessWidget {
     required Color iconColor,
   }) {
     return Container(
-      padding:
-      const EdgeInsets.all(17),
+      padding: const EdgeInsets.all(17),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius:
-        BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: AppColors.grey200
-              .withValues(
+          color: AppColors.grey200.withValues(
             alpha: 0.45,
           ),
         ),
       ),
       child: Column(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 42,
             height: 42,
-            decoration:
-            BoxDecoration(
+            decoration: BoxDecoration(
               color: iconBackground,
-              borderRadius:
-              BorderRadius.circular(
-                13,
-              ),
+              borderRadius: BorderRadius.circular(13),
             ),
             child: Icon(
               icon,
@@ -894,29 +838,22 @@ class HomeView extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(
-            height: 14,
-          ),
+          const SizedBox(height: 14),
 
           Text(
             title,
-            style: AppTextStyles
-                .summaryTitle,
+            style: AppTextStyles.summaryTitle,
           ),
 
-          const SizedBox(
-            height: 5,
-          ),
+          const SizedBox(height: 5),
 
           FittedBox(
             fit: BoxFit.scaleDown,
-            alignment:
-            Alignment.centerLeft,
+            alignment: Alignment.centerLeft,
             child: Text(
               '${AppStrings.currencyPrefix}'
                   '${amount.toStringAsFixed(2)}',
-              style: AppTextStyles
-                  .summaryAmount,
+              style: AppTextStyles.summaryAmount,
             ),
           ),
         ],
@@ -931,8 +868,7 @@ class HomeView extends StatelessWidget {
   static Widget _transactionCard(
       TransactionModel transaction,
       ) {
-    final isIncome =
-        transaction.type == 'income';
+    final isIncome = transaction.type == 'income';
 
     final iconBackground = isIncome
         ? AppColors.incomeBackground
@@ -943,96 +879,89 @@ class HomeView extends StatelessWidget {
         : AppColors.expenseRed;
 
     return Container(
-      width:
-      double.infinity,
-      margin:
-      const EdgeInsets.only(
+      width: double.infinity,
+      margin: const EdgeInsets.only(
         bottom: 11,
       ),
-      padding:
-      const EdgeInsets.all(15),
-      decoration:
-      BoxDecoration(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius:
-        BorderRadius.circular(19),
+        borderRadius: BorderRadius.circular(19),
         border: Border.all(
-          color: AppColors.grey200
-              .withValues(
+          color: AppColors.grey200.withValues(
             alpha: 0.45,
           ),
         ),
       ),
       child: Row(
         children: [
+          // ========================================================
+          // ICON
+          // ========================================================
+
           Container(
             width: 48,
             height: 48,
-            decoration:
-            BoxDecoration(
+            decoration: BoxDecoration(
               color: iconBackground,
-              borderRadius:
-              BorderRadius.circular(
-                15,
-              ),
+              borderRadius: BorderRadius.circular(15),
             ),
             child: Icon(
               isIncome
-                  ? Icons
-                  .arrow_downward_rounded
-                  : Icons
-                  .arrow_upward_rounded,
+                  ? Icons.arrow_downward_rounded
+                  : Icons.arrow_upward_rounded,
               color: iconColor,
               size: 22,
             ),
           ),
 
-          const SizedBox(
-            width: 13,
-          ),
+          const SizedBox(width: 13),
+
+          // ========================================================
+          // DETAILS
+          // ========================================================
 
           Expanded(
             child: Column(
               crossAxisAlignment:
-              CrossAxisAlignment
-                  .start,
+              CrossAxisAlignment.start,
               children: [
                 Text(
                   transaction.title,
                   maxLines: 1,
-                  overflow:
-                  TextOverflow.ellipsis,
-                  style: AppTextStyles
-                      .transactionTitle,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.transactionTitle,
                 ),
 
-                const SizedBox(
-                  height: 5,
-                ),
+                const SizedBox(height: 5),
 
                 Text(
                   '${transaction.date.day}/'
                       '${transaction.date.month}/'
                       '${transaction.date.year}',
-                  style: AppTextStyles
-                      .transactionDate,
+                  style: AppTextStyles.transactionDate,
                 ),
               ],
             ),
           ),
 
-          const SizedBox(
-            width: 8,
-          ),
+          const SizedBox(width: 8),
 
-          Text(
-            '${isIncome ? '+' : '-'} '
-                '${AppStrings.currencyPrefix}'
-                '${transaction.amount.toStringAsFixed(2)}',
-            style: AppTextStyles
-                .transactionAmount
-                .copyWith(
-              color: iconColor,
+          // ========================================================
+          // AMOUNT
+          // ========================================================
+
+          Flexible(
+            child: Text(
+              '${isIncome ? '+' : '-'} '
+                  '${AppStrings.currencyPrefix}'
+                  '${transaction.amount.toStringAsFixed(2)}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.end,
+              style: AppTextStyles.transactionAmount.copyWith(
+                color: iconColor,
+              ),
             ),
           ),
         ],
@@ -1046,21 +975,16 @@ class HomeView extends StatelessWidget {
 
   static Widget _emptyTransactions() {
     return Container(
-      width:
-      double.infinity,
-      padding:
-      const EdgeInsets.symmetric(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
         horizontal: 25,
         vertical: 35,
       ),
-      decoration:
-      BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius:
-        BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: AppColors.grey200
-              .withValues(
+          color: AppColors.grey200.withValues(
             alpha: 0.45,
           ),
         ),
@@ -1070,46 +994,30 @@ class HomeView extends StatelessWidget {
           Container(
             width: 65,
             height: 65,
-            decoration:
-            BoxDecoration(
-              color: AppColors
-                  .lightBlueBackground,
-              borderRadius:
-              BorderRadius.circular(
-                20,
-              ),
+            decoration: BoxDecoration(
+              color: AppColors.lightBlueBackground,
+              borderRadius: BorderRadius.circular(20),
             ),
             child: const Icon(
-              Icons
-                  .receipt_long_outlined,
+              Icons.receipt_long_outlined,
               size: 32,
-              color:
-              AppColors.blue,
+              color: AppColors.blue,
             ),
           ),
 
-          const SizedBox(
-            height: 15,
-          ),
+          const SizedBox(height: 15),
 
           const Text(
-            AppStrings
-                .noTransactionsYet,
-            style: AppTextStyles
-                .emptyTitle,
+            AppStrings.noTransactionsYet,
+            style: AppTextStyles.emptyTitle,
           ),
 
-          const SizedBox(
-            height: 6,
-          ),
+          const SizedBox(height: 6),
 
           const Text(
-            AppStrings
-                .trackIncomeExpenses,
-            textAlign:
-            TextAlign.center,
-            style: AppTextStyles
-                .emptyDescription,
+            AppStrings.trackIncomeExpenses,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.emptyDescription,
           ),
         ],
       ),

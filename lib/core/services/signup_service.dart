@@ -8,32 +8,66 @@ class SignupService {
 
   SignupService(this.localStorage);
 
-  // Check whether email already exists
+  // ================================================================
+  // CHECK EMAIL
+  // ================================================================
+
   bool emailExists(String email) {
-    return localStorage.emailExists(email);
+    try {
+      return localStorage.emailExists(email);
+    } catch (e) {
+      throw Exception(
+        'Unable to check whether this email is already registered.',
+      );
+    }
   }
 
-  // Create and save new user
+  // ================================================================
+  // CREATE USER
+  // ================================================================
+
   Future<void> createUser({
     required String name,
     required String email,
     required String password,
   }) async {
-    // Hash password before storing it
-    final hashedPassword = BCrypt.hashpw(
-      password,
-      BCrypt.gensalt(),
-    );
+    try {
+      // ============================================================
+      // HASH PASSWORD
+      // ============================================================
 
-    final user = UserModel(
-      name: name,
-      email: email,
-      password: hashedPassword,
-    );
+      final hashedPassword = BCrypt.hashpw(
+        password,
+        BCrypt.gensalt(),
+      );
 
-    await localStorage.saveUser(user);
+      // ============================================================
+      // CREATE USER
+      // ============================================================
 
-    // Create login session
-    await localStorage.saveSession(user.email);
+      final user = UserModel(
+        name: name,
+        email: email,
+        password: hashedPassword,
+      );
+
+      // ============================================================
+      // SAVE USER
+      // ============================================================
+
+      await localStorage.saveUser(user);
+
+      // ============================================================
+      // CREATE LOGIN SESSION
+      // ============================================================
+
+      await localStorage.saveSession(user.email);
+    } on Exception {
+      rethrow;
+    } catch (e) {
+      throw Exception(
+        'Unable to create your account. Please try again.',
+      );
+    }
   }
 }

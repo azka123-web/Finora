@@ -48,6 +48,10 @@ class SignupController extends GetxController {
     final password = passwordController.text;
     final confirmPassword = confirmPasswordController.text;
 
+    // ============================================================
+    // NAME VALIDATION
+    // ============================================================
+
     final nameError = AuthValidator.validateName(name);
 
     if (nameError != null) {
@@ -57,6 +61,10 @@ class SignupController extends GetxController {
       );
       return;
     }
+
+    // ============================================================
+    // EMAIL VALIDATION
+    // ============================================================
 
     final emailError = AuthValidator.validateEmail(email);
 
@@ -68,6 +76,10 @@ class SignupController extends GetxController {
       return;
     }
 
+    // ============================================================
+    // PASSWORD VALIDATION
+    // ============================================================
+
     final passwordError =
     AuthValidator.validatePassword(password);
 
@@ -78,6 +90,10 @@ class SignupController extends GetxController {
       );
       return;
     }
+
+    // ============================================================
+    // CONFIRM PASSWORD VALIDATION
+    // ============================================================
 
     final confirmPasswordError =
     AuthValidator.validateConfirmPassword(
@@ -93,19 +109,31 @@ class SignupController extends GetxController {
       return;
     }
 
+    // ============================================================
+    // CREATE ACCOUNT
+    // ============================================================
+
     try {
       isLoading.value = true;
 
-      if (signupService.emailExists(email)) {
-        isLoading.value = false;
+      // ----------------------------------------------------------
+      // CHECK EXISTING EMAIL
+      // ----------------------------------------------------------
 
+      final emailAlreadyExists =
+      signupService.emailExists(email);
+
+      if (emailAlreadyExists) {
         _showError(
           AppStrings.accountExists,
           AppStrings.accountAlreadyExists,
         );
-
         return;
       }
+
+      // ----------------------------------------------------------
+      // CREATE USER
+      // ----------------------------------------------------------
 
       await signupService.createUser(
         name: name,
@@ -113,7 +141,9 @@ class SignupController extends GetxController {
         password: password,
       );
 
-      isLoading.value = false;
+      // ----------------------------------------------------------
+      // SUCCESS
+      // ----------------------------------------------------------
 
       Get.snackbar(
         AppStrings.success,
@@ -127,12 +157,20 @@ class SignupController extends GetxController {
 
       Get.offAllNamed(AppRoutes.home);
     } catch (e) {
-      isLoading.value = false;
+      // ----------------------------------------------------------
+      // USER-FRIENDLY ERROR
+      // ----------------------------------------------------------
 
       _showError(
         AppStrings.error,
         AppStrings.accountCreationError,
       );
+    } finally {
+      // ----------------------------------------------------------
+      // ALWAYS STOP LOADING
+      // ----------------------------------------------------------
+
+      isLoading.value = false;
     }
   }
 

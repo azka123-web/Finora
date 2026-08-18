@@ -18,6 +18,20 @@ class AppStrings {
   static const String error = 'Error';
   static const String login = 'Login';
   static const String or = 'OR';
+  static const String success = 'Success';
+
+  // ================================================================
+  // COMMON ERROR MESSAGES
+  // ================================================================
+
+  static const String unexpectedError =
+      'Something went wrong. Please try again.';
+
+  static const String storageError =
+      'Unable to access your saved data. Please try again.';
+
+  static const String sessionError =
+      'Unable to save your login session. Please try again.';
 
   // ================================================================
   // HOME
@@ -26,7 +40,8 @@ class AppStrings {
   static const String transactionHistory =
       'Transaction History';
 
-  static const String logout = 'Logout';
+  static const String logout =
+      'Logout';
 
   static const String welcomeBack =
       'Welcome back';
@@ -61,6 +76,19 @@ class AppStrings {
 
   static const String addTransaction =
       'Add Transaction';
+
+  // ================================================================
+  // HOME / SESSION ERRORS
+  // ================================================================
+
+  static const String logoutFailed =
+      'Unable to log out. Please try again.';
+
+  static const String transactionLoadError =
+      'Unable to load your transactions. Please try again.';
+
+  static const String transactionDeleteError =
+      'Unable to delete this transaction. Please try again.';
 
   // ================================================================
   // LOGIN
@@ -108,26 +136,65 @@ class AppStrings {
   static const String googleLoginFailed =
       'Google Login Failed';
 
+  // ================================================================
+  // LOGIN VALIDATION
+  // ================================================================
+
+  static const String emailError =
+      'Email Error';
+
+  static const String passwordError =
+      'Password Error';
+
   static const String enterYourEmailMessage =
       'Please enter your email.';
 
   static const String invalidEmailMessage =
       'Please enter a valid email address.';
 
+  static const String enterYourPasswordMessage =
+      'Please enter your password.';
+
   static const String incorrectEmailOrPassword =
-      'Incorrect email or password.';
+      'Incorrect email or password. Please check your details and try again.';
+
+  // ================================================================
+  // LOGIN ERRORS
+  // ================================================================
 
   static const String loginErrorMessage =
-      'Something went wrong while logging in.';
+      'Unable to log in right now. Please try again.';
+
+  static const String loginStorageError =
+      'Unable to access your account data. Please try again.';
+
+  static const String loginSessionError =
+      'Login was successful, but your session could not be saved. Please try again.';
+
+  // ================================================================
+  // GOOGLE LOGIN
+  // ================================================================
 
   static const String welcome =
       'Welcome';
 
+  static const String googleUser =
+      'Google User';
+
   static const String firebaseAuthenticationFailed =
-      'Firebase authentication failed.';
+      'Google authentication failed. Please try again.';
 
   static const String googleLoginErrorMessage =
-      'Unable to sign in with Google. Please try again.';
+      'Unable to sign in with Google. Please check your connection and try again.';
+
+  static const String googleLoginCancelled =
+      'Google sign-in was cancelled.';
+
+  static const String googleEmailUnavailable =
+      'Unable to get your Google account email. Please try again.';
+
+  static const String googleUserSaveError =
+      'Unable to create your account. Please try again.';
 
   // ================================================================
   // SIGNUP
@@ -173,14 +240,39 @@ class AppStrings {
   static const String nameRequired =
       'Name Required';
 
-  static const String emailError =
-      'Email Error';
+  static const String enterName =
+      'Please enter your name.';
 
-  static const String passwordError =
-      'Password Error';
+  static const String invalidName =
+      'Please enter a valid name.';
+
+  static const String emailRequired =
+      'Email Required';
+
+  static const String enterEmail =
+      'Please enter your email.';
+
+  static const String validEmail =
+      'Please enter a valid email address.';
+
+  static const String passwordRequired =
+      'Password Required';
+
+  static const String enterPassword =
+      'Please enter a password.';
+
+  static const String strongPassword =
+      'Use 8+ characters with uppercase, lowercase, number and special character.';
 
   static const String passwordMismatch =
       'Passwords do not match.';
+
+  static const String passwordsDoNotMatch =
+      'Passwords do not match.';
+
+  // ================================================================
+  // SIGNUP STATUS / ERRORS
+  // ================================================================
 
   static const String accountExists =
       'Account Exists';
@@ -191,31 +283,20 @@ class AppStrings {
   static const String accountCreatedSuccessfully =
       'Account created successfully.';
 
-  static const String success =
-      'Success';
-
   static const String accountCreationError =
-      'Something went wrong while creating your account.';
+      'Unable to create your account. Please try again.';
 
-  // AuthValidator messages
+  static const String passwordHashError =
+      'Unable to secure your password. Please try again.';
 
-  static const String enterName =
-      'Please enter your name.';
+  static const String userSaveError =
+      'Unable to save your account. Please try again.';
 
-  static const String enterEmail =
-      'Please enter your email.';
+  static const String signupStorageError =
+      'Unable to access account storage. Please try again.';
 
-  static const String validEmail =
-      'Please enter a valid email address.';
-
-  static const String enterPassword =
-      'Please enter a password.';
-
-  static const String strongPassword =
-      'Use 8+ characters with uppercase, lowercase, number and special character.';
-
-  static const String passwordsDoNotMatch =
-      'Passwords do not match.';
+  static const String signupSessionError =
+      'Your account was created, but your session could not be saved. Please try logging in again.';
 
   // ================================================================
   // EDIT TRANSACTION
@@ -294,8 +375,17 @@ class AppStrings {
   static const String validAmount =
       'Please enter a valid amount greater than zero.';
 
+  static const String transactionNotFound =
+      'This transaction could not be found.';
+
+  static const String invalidTransaction =
+      'This transaction contains invalid data.';
+
   static const String updateTransactionError =
-      'Something went wrong while updating the transaction.';
+      'Unable to update this transaction. Please try again.';
+
+  static const String updateStorageError =
+      'Unable to save the updated transaction. Please try again.';
 
   // ================================================================
   // TRANSACTION OPTIONS
@@ -357,7 +447,7 @@ class AppStrings {
       'Saved Successfully';
 
   // ================================================================
-  // TRANSACTION SAVE STATUS
+  // TRANSACTION SAVE STATUS / ERRORS
   // ================================================================
 
   static const String transactionSaved =
@@ -370,7 +460,17 @@ class AppStrings {
       'Expense has been added successfully.';
 
   static const String transactionSaveError =
-      'Something went wrong while saving the transaction.';
+      'Unable to save this transaction. Please check your details and try again.';
+
+  static const String transactionStorageError =
+      'Unable to save your transaction data. Please try again.';
+
+  // ================================================================
+  // TRANSACTION DELETE ERRORS
+  // ================================================================
+
+  static const String transactionDeleteStorageError =
+      'Unable to remove this transaction from your saved data. Please try again.';
 
   // ================================================================
   // TRANSACTION HISTORY
@@ -394,4 +494,10 @@ class AppStrings {
   static const String transactionHistoryEmptyDescription =
       'Your income and expenses will appear\n'
       'here once you add your first transaction.';
+
+  static const String transactionHistoryError =
+      'Unable to load your transaction history. Please try again.';
+
+  static const String transactionCalculationError =
+      'Unable to calculate your financial summary. Please try again.';
 }
